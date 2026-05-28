@@ -1,0 +1,19 @@
+name: idfd
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - numpy=1.26.*
+  - scipy=1.13.*
+  - scikit-learn=1.5.*
+  - pandas=2.2.*
+  - matplotlib=3.9.*
+  - pyyaml=6.*
+  - tqdm=4.*
+  - tensorboard=2.*
+  - jupyterlab
+  - pip:
+      - opencv-python-headless==4.10.*
+      # PyTorch is installed SEPARATELY (README step 5) so the build matches
+      # Viper's CUDA driver. Do NOT add torch/torchvision here.

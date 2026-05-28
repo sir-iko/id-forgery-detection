@@ -1,0 +1,20 @@
+# Data and heavy artifacts (Viper is not backed up; keep these out of git too)
+data/*
+!data/.gitkeep
+results/*
+!results/.gitkeep
+checkpoints/
+*.pth
+*.pt
+*.ckpt
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+env/
+
+# Conda full-path export (commit environment.lock.yml instead if you prefer)
+# OS
+.DS_Store
