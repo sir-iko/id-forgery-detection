@@ -1,8 +1,10 @@
 import csv
+from collections import Counter
 from pathlib import Path
 
 from PIL import Image
-from torch.utils.data import Dataset
+from sklearn.model_selection import train_test_split
+from torch.utils.data import Dataset, Subset
 
 
 class FantasyIDDataset(Dataset):
@@ -45,3 +47,28 @@ class FantasyIDDataset(Dataset):
         if self.transform is not None:
             img = self.transform(img)
         return img, label
+
+
+def stratified_train_val_split(dataset, val_frac=0.2, seed=42):
+    """Split a FantasyIDDataset into train and validation Subsets.
+
+    Stratifies on (label, attack_type) so both halves preserve the class
+    imbalance AND the attack-type composition of the original set.
+    """
+    stratify_keys = [f"{lab}_{atk}" for _, lab, atk in dataset.samples]
+    indices = list(range(len(dataset)))
+    train_idx, val_idx = train_test_split(
+        indices,
+        test_size=val_frac,
+        random_state=seed,
+        stratify=stratify_keys,
+    )
+    return Subset(dataset, train_idx), Subset(dataset, val_idx)
+
+
+def label_counts(dataset_or_subset):
+    """Return a Counter of labels in a FantasyIDDataset or a Subset of one."""
+    if isinstance(dataset_or_subset, Subset):
+        base = dataset_or_subset.dataset
+        return Counter(base.samples[i][1] for i in dataset_or_subset.indices)
+    return Counter(s[1] for s in dataset_or_subset.samples)

@@ -1,6 +1,6 @@
 seed: 42
 data:
-  root: data/processed        # set to your processed-data path on Viper
+  root: data/raw/fantasyid
   image_size: 224
   num_workers: 4
 model:
