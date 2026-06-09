@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=idfd-smoke
+#SBATCH --job-name=idfd-r50-e35
 
 #SBATCH --partition=gpu
 
@@ -10,7 +10,7 @@
 
 #SBATCH --mem=32G
 
-#SBATCH --time=00:30:00
+#SBATCH --time=02:00:00
 
 #SBATCH --output=results/slurm_%j.out
 
@@ -40,5 +40,5 @@ python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is
 
 cd "$SLURM_SUBMIT_DIR"
 
-python -m src.train --config configs/default.yaml --epochs 2 --max-batches 50
+python -m src.train --config configs/default.yaml --epochs 35 --patience 7
 
