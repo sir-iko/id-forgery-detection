@@ -1,22 +1,44 @@
 #!/bin/bash
+
 #SBATCH --job-name=idfd-smoke
-#SBATCH --partition=gpu            # CHECK: confirm the GPU partition name on Viper
-#SBATCH --gres=gpu:1
+
+#SBATCH --partition=gpu
+
+#SBATCH --gres=gpu:tesla:1
+
 #SBATCH --cpus-per-task=4
+
 #SBATCH --mem=32G
-#SBATCH --time=00:30:00            # request only what you need (Viper max is 5 days)
+
+#SBATCH --time=00:30:00
+
 #SBATCH --output=results/slurm_%j.out
+
 #SBATCH --error=results/slurm_%j.err
 
-# --- Modules: confirm exact names with `module avail` ---
-# module load cuda                 # match the CUDA your PyTorch build expects
 
-# --- Activate conda env ---
-source ~/miniconda3/etc/profile.d/conda.sh
+
+# --- Activate conda env (Viper login/compute nodes) ---
+
+module load python/miniforge/25.3.0-3
+
+condastart
+
 conda activate idfd
+
+
+
+# --- Diagnostics: confirm the GPU is visible and torch sees CUDA ---
 
 nvidia-smi
 
+python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no-cuda')"
+
+
+
 # Run from the submit directory so the `src` package imports correctly
+
 cd "$SLURM_SUBMIT_DIR"
-python -m src.train --config configs/default.yaml
+
+python -m src.train --config configs/default.yaml --epochs 2 --max-batches 50
+

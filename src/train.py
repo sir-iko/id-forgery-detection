@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from src.config import load_config
-from src.data import FantasyIDDataset, stratified_train_val_split, label_counts
+from src.data import FantasyIDDataset, stratified_train_val_split, stratified_group_train_val_split, label_counts
 from src.models import build_model
 from src.transforms import get_transforms
 from src.utils.logging import RunLogger
@@ -75,7 +75,25 @@ def main():
     # Data
     tf = get_transforms("train", image_size=cfg["data"]["image_size"])
     full = FantasyIDDataset(cfg["data"]["root"], split="train", transform=tf)
-    train_set, val_set = stratified_train_val_split(full, val_frac=0.2, seed=cfg["seed"])
+    # Pick splitter by dataset: group-aware (no template leakage) when source
+
+    # lineage is available (synthetic MIDV set), plain stratified otherwise
+
+    # (FantasyID, which carries no base_id).
+
+    has_groups = hasattr(full, "groups") and all(g[0] is not None for g in full.groups)
+
+    if has_groups:
+
+        print("Split: group-aware (base_id present)")
+
+        train_set, val_set = stratified_group_train_val_split(full, val_frac=0.2, seed=cfg["seed"])
+
+    else:
+
+        print("Split: plain stratified (no base_id)")
+
+        train_set, val_set = stratified_train_val_split(full, val_frac=0.2, seed=cfg["seed"])
     print(f"Train: {len(train_set)}  Val: {len(val_set)}")
     print(f"Train label counts: {dict(label_counts(train_set))}")
 
