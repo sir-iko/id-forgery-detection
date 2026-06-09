@@ -63,6 +63,7 @@ def main():
                     help="cap batches per epoch for a quick smoke run")
     ap.add_argument("--epochs", type=int, default=None,
                     help="override the epoch count in the config")
+    ap.add_argument("--patience", type=int, default=None, help="stop if val loss does not improve for this many epochs")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -128,6 +129,8 @@ def main():
     ckpt_dir = Path("checkpoints")
     ckpt_dir.mkdir(exist_ok=True)
     best_val_loss = float("inf")
+    epochs_no_improve = 0
+    patience = args.patience
 
     n_epochs = args.epochs if args.epochs is not None else cfg["train"]["epochs"]
     for epoch in range(n_epochs):
@@ -153,6 +156,12 @@ def main():
                 ckpt_dir / f"{cfg['output']['run_name']}_best.pt",
             )
             print(f"  saved best checkpoint (val loss {va_loss:.4f})")
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+            if patience is not None and epochs_no_improve >= patience:
+                print(f"  early stop: val loss flat for {patience} epochs")
+                break
 
     logger.close()
 
