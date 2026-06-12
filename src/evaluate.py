@@ -97,6 +97,38 @@ def per_attack_type(dataset, y_true, y_pred):
     return breakdown
 
 
+def per_attack_type_auc(dataset, y_true, y_prob):
+    """Per-attack-type discriminability against the bonafide pool.
+
+    Each forged attack type is single-class (all is_attack=1), so AUC is
+    computed by pairing that type's samples with ALL bonafide samples and
+    scoring P(forged). Answers whether the model can separate THIS attack
+    type from genuine documents. Near or below 0.5 means a representational
+    failure that threshold calibration cannot fix."""
+    attack_types = np.array([s[2] for s in dataset.samples])
+    bona_idx = np.where(attack_types == "none")[0]
+    breakdown = {}
+    for atk in sorted(set(attack_types.tolist())):
+        if atk == "none":
+            continue
+        pos_idx = np.where(attack_types == atk)[0]
+        idx = np.concatenate([bona_idx, pos_idx])
+        yt = y_true[idx]
+        yp = y_prob[idx]
+        if len(set(yt.tolist())) < 2:
+            breakdown[atk] = {"n_pos": int(len(pos_idx)),
+                              "n_bonafide": int(len(bona_idx)),
+                              "roc_auc": None, "pr_auc": None}
+            continue
+        breakdown[atk] = {
+            "n_pos": int(len(pos_idx)),
+            "n_bonafide": int(len(bona_idx)),
+            "roc_auc": float(roc_auc_score(yt, yp)),
+            "pr_auc": float(average_precision_score(yt, yp)),
+        }
+    return breakdown
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--checkpoint", required=True,
@@ -141,6 +173,7 @@ def main():
         "model": cfg["model"]["name"],
         "overall": overall_metrics(y_true, y_pred, y_prob),
         "per_attack_type": per_attack_type(dataset, y_true, y_pred),
+        "per_attack_type_auc": per_attack_type_auc(dataset, y_true, y_prob),
     }
 
     # Print a readable summary
@@ -158,6 +191,16 @@ def main():
     print("\n=== Per attack type (recall) ===")
     for atk, d in results["per_attack_type"].items():
         print(f"{atk:12s}  n={d['n']:4d}  recall={d['recall']:.4f}")
+
+    print("\n=== Per attack type (AUC vs bonafide pool) ===")
+    for atk, d in results["per_attack_type_auc"].items():
+        roc = d["roc_auc"]
+        pr = d["pr_auc"]
+        roc_s = f"{roc:.4f}" if roc is not None else "n/a"
+        pr_s = f"{pr:.4f}" if pr is not None else "n/a"
+        print(f"{atk:12s}  n_pos={d['n_pos']:4d}  "
+              f"n_bonafide={d['n_bonafide']:4d}  "
+              f"ROC-AUC={roc_s}  PR-AUC={pr_s}")
 
     # Save JSON next to the checkpoint
     out_path = Path(args.checkpoint).parent / f"eval_{args.split}.json"
