@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from src.config import load_config
-from src.data import FantasyIDDataset, stratified_train_val_split, label_counts
+from src.data import FantasyIDDataset, stratified_train_val_split, stratified_group_train_val_split, label_counts
 from src.models import build_model
 from src.transforms import get_transforms
 from src.utils.logging import RunLogger
@@ -63,6 +63,7 @@ def main():
                     help="cap batches per epoch for a quick smoke run")
     ap.add_argument("--epochs", type=int, default=None,
                     help="override the epoch count in the config")
+    ap.add_argument("--patience", type=int, default=None, help="stop if val loss does not improve for this many epochs")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -75,7 +76,25 @@ def main():
     # Data
     tf = get_transforms("train", image_size=cfg["data"]["image_size"])
     full = FantasyIDDataset(cfg["data"]["root"], split="train", transform=tf)
-    train_set, val_set = stratified_train_val_split(full, val_frac=0.2, seed=cfg["seed"])
+    # Pick splitter by dataset: group-aware (no template leakage) when source
+
+    # lineage is available (synthetic MIDV set), plain stratified otherwise
+
+    # (FantasyID, which carries no base_id).
+
+    has_groups = hasattr(full, "groups") and all(g[0] is not None for g in full.groups)
+
+    if has_groups:
+
+        print("Split: group-aware (base_id present)")
+
+        train_set, val_set = stratified_group_train_val_split(full, val_frac=0.2, seed=cfg["seed"])
+
+    else:
+
+        print("Split: plain stratified (no base_id)")
+
+        train_set, val_set = stratified_train_val_split(full, val_frac=0.2, seed=cfg["seed"])
     print(f"Train: {len(train_set)}  Val: {len(val_set)}")
     print(f"Train label counts: {dict(label_counts(train_set))}")
 
@@ -110,6 +129,8 @@ def main():
     ckpt_dir = Path("checkpoints")
     ckpt_dir.mkdir(exist_ok=True)
     best_val_loss = float("inf")
+    epochs_no_improve = 0
+    patience = args.patience
 
     n_epochs = args.epochs if args.epochs is not None else cfg["train"]["epochs"]
     for epoch in range(n_epochs):
@@ -135,6 +156,12 @@ def main():
                 ckpt_dir / f"{cfg['output']['run_name']}_best.pt",
             )
             print(f"  saved best checkpoint (val loss {va_loss:.4f})")
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+            if patience is not None and epochs_no_improve >= patience:
+                print(f"  early stop: val loss flat for {patience} epochs")
+                break
 
     logger.close()
 

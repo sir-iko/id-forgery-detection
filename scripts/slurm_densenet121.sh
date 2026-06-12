@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=idfd-r50-e35
+#SBATCH --job-name=idfd-d121-e35
 
 #SBATCH --partition=gpu
 
@@ -40,5 +40,5 @@ python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is
 
 cd "$SLURM_SUBMIT_DIR"
 
-python -m src.train --config configs/default.yaml --epochs 35 --patience 7
+python -m src.train --config configs/densenet121.yaml --epochs 35 --patience 7
 
