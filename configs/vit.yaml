@@ -8,12 +8,12 @@ model:
   pretrained: true
   num_classes: 2
 train:
-  epochs: 50
+  epochs: 35
   batch_size: 16
-  lr: 1.0e-4
+  lr: 5.0e-5
   weight_decay: 1.0e-4
   folds: 5
-  loss: bce                   # bce | focal (use focal if class imbalance bites)
+  loss: ce                    # ce | focal (use focal if class imbalance bites)
 output:
   dir: results
   run_name: vit_baseline

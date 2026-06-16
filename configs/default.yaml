@@ -13,7 +13,7 @@ train:
   lr: 1.0e-4
   weight_decay: 1.0e-4
   folds: 5
-  loss: bce                   # bce | focal (use focal if class imbalance bites)
+  loss: ce                    # ce | focal (use focal if class imbalance bites)
 output:
   dir: results
   run_name: resnet50_baseline
