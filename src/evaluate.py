@@ -202,6 +202,17 @@ def main():
               f"n_bonafide={d['n_bonafide']:4d}  "
               f"ROC-AUC={roc_s}  PR-AUC={pr_s}")
 
+    # Per-sample scores for the calibration experiment (additive; does not
+    # change existing outputs). Order matches dataset.samples since the test
+    # loader uses shuffle=False. Columns: idx, y_true, P(forged), attack_type.
+    attack_types = [s[2] for s in dataset.samples]
+    scores_path = Path(args.checkpoint).parent / f"scores_{args.split}.csv"
+    with open(scores_path, "w") as f:
+        f.write("idx,y_true,p_forged,attack_type\n")
+        for i in range(len(y_true)):
+            f.write(f"{i},{int(y_true[i])},{float(y_prob[i]):.6f},{attack_types[i]}\n")
+    print(f"Saved per-sample scores: {scores_path}")
+
     # Save JSON next to the checkpoint
     out_path = Path(args.checkpoint).parent / f"eval_{args.split}.json"
     with open(out_path, "w") as f:
