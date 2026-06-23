@@ -18,3 +18,4 @@ env/
 # Conda full-path export (commit environment.lock.yml instead if you prefer)
 # OS
 .DS_Store
+PROJECT_CONTEXT*.md
