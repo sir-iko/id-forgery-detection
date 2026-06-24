@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.stats import binomtest
+from sklearn.metrics import roc_auc_score
 
 MODELS = {
     "ResNet50": "scores_test_resnet50.csv",
@@ -74,8 +75,9 @@ def _calc_pvalue(aucs, sigma):
     l = np.array([[1, -1]])
     z = np.abs(np.diff(aucs)) / np.sqrt(np.dot(np.dot(l, sigma), l.T))
     from scipy.stats import norm
-    p = 2 * (1 - norm.cdf(z))
-    return float(z), float(p)
+    z = float(z.item())
+    p = float(2 * (1 - norm.cdf(z)))
+    return z, p
 
 
 def delong_test(y_true, score_a, score_b):
@@ -137,8 +139,8 @@ def run_class(data, label, selector):
     for model, df in data.items():
         y, p = selector(df)
         arrays[model] = (y, p)
-        auc_a, _, _, _ = delong_test(y, p, p)  # self-pair gives the AUC
-        print(f"{model}: n={len(y)}, AUC={auc_a:.4f}")
+        auc = roc_auc_score(y, p)
+        print(f"{model}: n={len(y)}, AUC={auc:.4f}")
 
     print("-- DeLong (AUC vs AUC) --")
     for a, b in itertools.combinations(MODELS, 2):
@@ -164,8 +166,6 @@ def main():
     )
     parser.add_argument("--scores-dir", default="checkpoints",
                         help="Directory holding scores_test_<model>.csv files.")
-    parser.add_argument("--out", default="checkpoints/model_comparison.txt",
-                        help="Where to tee a copy of the printed report.")
     args = parser.parse_args()
 
     data = load_scores(args.scores_dir)
