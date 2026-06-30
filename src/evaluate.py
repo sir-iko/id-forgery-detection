@@ -140,7 +140,18 @@ def main():
     ap.add_argument("--batch-size", type=int, default=16)
     ap.add_argument("--num-workers", type=int, default=None,
                     help="override DataLoader workers; 0 avoids macOS segfaults")
+    ap.add_argument("--jpeg-quality", type=int, default=None,
+                    help="JPEG quality for degradation sweep; None = clean")
+    ap.add_argument("--blur-sigma", type=float, default=None,
+                    help="Gaussian blur sigma for degradation sweep; None = clean")
     args = ap.parse_args()
+
+    if args.jpeg_quality is not None or args.blur_sigma is not None:
+        jq = args.jpeg_quality if args.jpeg_quality is not None else "na"
+        bs = args.blur_sigma if args.blur_sigma is not None else "na"
+        deg_suffix = f"_jpeg{jq}_blur{bs}"
+    else:
+        deg_suffix = ""
 
     device = select_device()
     print(f"Device: {device}")
@@ -151,7 +162,8 @@ def main():
           f"val_loss {ckpt.get('val_loss'):.4f}")
 
     data_root = args.data_root or cfg["data"]["root"]
-    tf = get_transforms(args.split, image_size=cfg["data"]["image_size"])
+    tf = get_transforms(args.split, image_size=cfg["data"]["image_size"],
+                        jpeg_quality=args.jpeg_quality, blur_sigma=args.blur_sigma)
     dataset = FantasyIDDataset(data_root, split=args.split, transform=tf)
     nw = args.num_workers if args.num_workers is not None else cfg["data"]["num_workers"]
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False,
@@ -206,7 +218,7 @@ def main():
     # change existing outputs). Order matches dataset.samples since the test
     # loader uses shuffle=False. Columns: idx, y_true, P(forged), attack_type.
     attack_types = [s[2] for s in dataset.samples]
-    scores_path = Path(args.checkpoint).parent / f"scores_{args.split}.csv"
+    scores_path = Path(args.checkpoint).parent / f"scores_{args.split}{deg_suffix}.csv"
     with open(scores_path, "w") as f:
         f.write("idx,y_true,p_forged,attack_type\n")
         for i in range(len(y_true)):
@@ -214,7 +226,7 @@ def main():
     print(f"Saved per-sample scores: {scores_path}")
 
     # Save JSON next to the checkpoint
-    out_path = Path(args.checkpoint).parent / f"eval_{args.split}.json"
+    out_path = Path(args.checkpoint).parent / f"eval_{args.split}{deg_suffix}.json"
     with open(out_path, "w") as f:
         json.dump(results, f, indent=2)
     print(f"\nSaved: {out_path}")
