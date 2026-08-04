@@ -16,14 +16,14 @@ SIZES = [10, 25, 50]
 
 
 def load(json_dir, model):
-    p = Path(json_dir) / f"calibration_{model}.json"
+    p = Path(json_dir) / f"calibration_fpr_{model}.json"
     with open(p) as f:
         return json.load(f)
 
 
 def series(stage, metric):
-    """Return (sizes_present, means, stds) for a metric in a stage, only at
-    calibration-set sizes that actually have data (face has no size 50)."""
+    """Return (sizes_present, means, stds) for a metric in a stage, at all
+    calibration-set sizes that actually have data """
     xs, ms, ss = [], [], []
     for s in SIZES:
         key = str(s)
@@ -111,10 +111,6 @@ def main():
              "Top row is threshold-fair and tells the truth; bottom-row F1 "
              "rises for text too, which is the trap.",
              ha="center", fontsize=8.5, color="0.35")
-    fig.text(0.5, 0.012,
-             "Face has no size-50 point: only 150 face samples exist, so a "
-             "stratified draw of 50 cannot be filled.",
-             ha="center", fontsize=7.5, color="0.45")
     fig.tight_layout(rect=[0, 0.03, 1, 0.92])
 
     out = Path(args.out)
