@@ -81,7 +81,7 @@ def main():
 
     # row y-limits: balacc spans the contrast, F1 sits high
     ax_bf.set_ylim(0.38, 0.88)
-    ax_ff.set_ylim(0.45, 0.95)
+    ax_ff.set_ylim(0.0, 0.95)
 
     # column headers (attack class) and a one-word verdict
     ax_bf.set_title("Face manipulation\n(separable, AUC ~ 0.78-0.92)",
@@ -108,8 +108,8 @@ def main():
         fontsize=13, y=0.99)
     fig.text(0.5, 0.945,
              "Mean +/- std over 20 stratified draws (FantasyID test set). "
-             "Top row is threshold-fair and tells the truth; bottom-row F1 "
-             "rises for text too, which is the trap.",
+             "Balanced accuracy is threshold-fair. Text F1 collapses under this "
+             "fixed-FPR protocol; an F1-optimised threshold would instead inflate it (see text).",
              ha="center", fontsize=8.5, color="0.35")
     fig.tight_layout(rect=[0, 0.03, 1, 0.92])
 
